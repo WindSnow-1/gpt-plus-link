@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ChatGPT Plus 支付链接生成器</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: #0f172a; }
+    .glow { box-shadow: 0 0 30px rgba(99, 102, 241, 0.15); }
+    textarea:focus { box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3); }
+    .copy-btn:active { transform: scale(0.95); }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.3s ease-out; }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+  <div class="w-full max-w-lg">
+    <div class="bg-slate-800/80 backdrop-blur rounded-2xl p-8 glow border border-slate-700/50">
+      <!-- Header -->
+      <div class="text-center mb-8">
+        <h1 class="text-2xl font-bold text-white mb-2">⚡ ChatGPT Plus</h1>
+        <p class="text-slate-400 text-sm">免费试用支付链接生成器</p>
+      </div>
+
+      <!-- Steps -->
+      <div class="mb-6 space-y-3">
+        <div class="flex items-start gap-3">
+          <span class="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 text-xs font-bold flex items-center justify-center mt-0.5">1</span>
+          <p class="text-slate-300 text-sm">登录 <a href="https://chatgpt.com" target="_blank" class="text-indigo-400 underline hover:text-indigo-300">chatgpt.com</a></p>
+        </div>
+        <div class="flex items-start gap-3">
+          <span class="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 text-xs font-bold flex items-center justify-center mt-0.5">2</span>
+          <div>
+            <p class="text-slate-300 text-sm">打开下面的链接，复制页面全部内容</p>
+            <div class="mt-1.5 flex items-center gap-2">
+              <code class="text-xs bg-slate-900 text-emerald-400 px-2 py-1 rounded break-all">https://chatgpt.com/api/auth/session</code>
+              <button onclick="copySessionUrl()" class="flex-shrink-0 text-xs text-slate-400 hover:text-white px-2 py-1 rounded bg-slate-700 hover:bg-slate-600 transition copy-btn">复制</button>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-start gap-3">
+          <span class="flex-shrink-0 w-6 h-6 rounded-full bg-indigo-500/20 text-indigo-400 text-xs font-bold flex items-center justify-center mt-0.5">3</span>
+          <p class="text-slate-300 text-sm">粘贴到下方输入框，点击生成</p>
+        </div>
+      </div>
+
+      <!-- Input -->
+      <textarea
+        id="tokenInput"
+        rows="5"
+        placeholder="粘贴整个 JSON 内容或单独的 accessToken..."
+        class="w-full bg-slate-900 border border-slate-600 rounded-xl px-4 py-3 text-sm text-slate-200 placeholder-slate-500 resize-none focus:outline-none focus:border-indigo-500 transition mb-4"
+      ></textarea>
+
+      <!-- Generate Button -->
+      <button
+        id="generateBtn"
+        onclick="generate()"
+        class="w-full bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-600 disabled:cursor-not-allowed text-white font-medium py-3 rounded-xl transition text-sm"
+      >
+        生成支付链接
+      </button>
+
+      <!-- Result -->
+      <div id="result" class="hidden mt-6 fade-in">
+        <div class="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-4">
+          <p class="text-emerald-400 text-sm font-medium mb-2">✅ 生成成功</p>
+          <div class="flex items-center gap-2">
+            <input
+              id="resultUrl"
+              type="text"
+              readonly
+              class="flex-1 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-xs text-slate-200 truncate"
+            />
+            <button onclick="copyResult()" class="flex-shrink-0 text-xs text-white px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 transition copy-btn">复制</button>
+          </div>
+          <a id="resultLink" href="#" target="_blank" class="inline-block mt-2 text-xs text-indigo-400 hover:text-indigo-300 underline">点击打开支付页面 →</a>
+        </div>
+      </div>
+
+      <!-- Error -->
+      <div id="error" class="hidden mt-6 fade-in">
+        <div class="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
+          <p class="text-red-400 text-sm font-medium mb-1">❌ 生成失败</p>
+          <p id="errorMsg" class="text-red-300 text-xs"></p>
+        </div>
+      </div>
+    </div>
+
+    <p class="text-center text-slate-600 text-xs mt-4">你的 Token 不会被存储，仅用于生成支付链接</p>
+  </div>
+
+  <script>
+    function copySessionUrl() {
+      navigator.clipboard.writeText('https://chatgpt.com/api/auth/session');
+    }
+
+    function copyResult() {
+      const url = document.getElementById('resultUrl').value;
+      navigator.clipboard.writeText(url);
+    }
+
+    async function generate() {
+      const input = document.getElementById('tokenInput').value.trim();
+      const btn = document.getElementById('generateBtn');
+      const resultDiv = document.getElementById('result');
+      const errorDiv = document.getElementById('error');
+
+      if (!input) {
+        showError('请先粘贴 session JSON 或 accessToken');
+        return;
+      }
+
+      // Reset
+      resultDiv.classList.add('hidden');
+      errorDiv.classList.add('hidden');
+
+      // Loading
+      btn.disabled = true;
+      btn.textContent = '⏳ 请求中...';
+
+      try {
+        const res = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ input }),
+        });
+
+        const data = await res.json();
+
+        if (data.success && data.url) {
+          document.getElementById('resultUrl').value = data.url;
+          document.getElementById('resultLink').href = data.url;
+          resultDiv.classList.remove('hidden');
+          errorDiv.classList.add('hidden');
+        } else {
+          showError(data.error || '未知错误');
+        }
+      } catch (err) {
+        showError('网络请求失败: ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '生成支付链接';
+      }
+    }
+
+    function showError(msg) {
+      const resultDiv = document.getElementById('result');
+      const errorDiv = document.getElementById('error');
+      document.getElementById('errorMsg').textContent = msg;
+      resultDiv.classList.add('hidden');
+      errorDiv.classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>

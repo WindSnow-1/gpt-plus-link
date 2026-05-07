@@ -1,0 +1,12 @@
+{
+  "name": "chatgpt-plus-tool",
+  "version": "1.0.0",
+  "description": "ChatGPT Plus 免费支付链接生成器",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}
