@@ -67,11 +67,22 @@ app.post('/api/generate', async (req, res) => {
       headers: {
         'Authorization': `Bearer ${accessToken}`,
         'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36',
+        'Origin': 'https://chatgpt.com',
+        'Referer': 'https://chatgpt.com/',
       },
       body: JSON.stringify(CHECKOUT_PAYLOAD),
     });
 
-    const data = await response.json();
+    const text = await response.text();
+    let data;
+    try {
+      data = JSON.parse(text);
+    } catch (e) {
+      console.error('Response not JSON:', text.substring(0, 500));
+      return res.status(502).json({ error: 'ChatGPT 返回了非 JSON 内容，可能被 Cloudflare 拦截' });
+    }
 
     if (data.url) {
       return res.json({ success: true, url: data.url });
