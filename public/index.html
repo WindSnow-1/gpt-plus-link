@@ -92,13 +92,37 @@
   </div>
 
   <script>
+    function fallbackCopy(text) {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.position = 'fixed';
+      ta.style.left = '-9999px';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+
+    function copyText(text, btn) {
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text);
+      } else {
+        fallbackCopy(text);
+      }
+      if (btn) {
+        const orig = btn.textContent;
+        btn.textContent = '已复制';
+        setTimeout(() => btn.textContent = orig, 1500);
+      }
+    }
+
     function copySessionUrl() {
-      navigator.clipboard.writeText('https://chatgpt.com/api/auth/session');
+      copyText('https://chatgpt.com/api/auth/session', event.target);
     }
 
     function copyResult() {
       const url = document.getElementById('resultUrl').value;
-      navigator.clipboard.writeText(url);
+      copyText(url, event.target);
     }
 
     async function generate() {
